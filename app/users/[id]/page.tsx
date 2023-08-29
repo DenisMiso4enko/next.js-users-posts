@@ -1,11 +1,11 @@
 import { UserCard } from "@/components/UserCard";
 import { UserPost } from "@/components/UserPost";
+import { getAllUsers } from "@/lib/getAllUsers";
 import { getUser } from "@/lib/getUser";
 import { getUserPosts } from "@/lib/getUserPosts";
 import { Metadata } from "next";
 import Link from "next/link";
-
-import React from "react";
+import { notFound } from "next/navigation";
 
 type Params = {
   params: {
@@ -15,6 +15,11 @@ type Params = {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const user: User = await getUser(params.id);
+  if (!user) {
+    return {
+      title: "User Not Found",
+    };
+  }
   return {
     title: user.name,
     description: `This is the page of ${user.name}`,
@@ -24,6 +29,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 const UserPage = async ({ params }: Params) => {
   const user: User = await getUser(params.id);
   const userPosts: Post[] = await getUserPosts(params.id);
+
+  if (!user) return notFound();
 
   return (
     <div>
@@ -41,3 +48,10 @@ const UserPage = async ({ params }: Params) => {
 };
 
 export default UserPage;
+
+// SSG
+export async function generateStaticParams() {
+  // получим всех пользователей и узнав их id, можем статически сгенерировать эти страницы заранее без SSR
+  const user: User[] = await getAllUsers();
+  return user.map((user) => ({ userId: user.id.toString() }));
+}
